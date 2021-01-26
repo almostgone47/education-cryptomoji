@@ -1,8 +1,8 @@
 'use strict';
 
-const secp256k1 = require('secp256k1');
+const secp256k1 = require('secp256k1-pure');
+const sha256 = require('sha256');
 const { randomBytes, createHash } = require('crypto');
-
 
 /**
  * A function which generates a new random Secp256k1 private key, returning
@@ -14,10 +14,12 @@ const { randomBytes, createHash } = require('crypto');
  *   // 'e291df3eede7f0c520fddbe5e9e53434ff7ef3c0894ed9d9cbcb6596f1cfe87e'
  */
 const createPrivateKey = () => {
-  // Enter your solution here
+  const privKey = randomBytes(32);
 
+  if (secp256k1.privateKeyVerify(privKey)) {
+    return privKey.toString('hex');
+  }
 };
-
 /**
  * A function which takes a hexadecimal private key and returns its public pair
  * as a 66 character hexadecimal string.
@@ -32,10 +34,11 @@ const createPrivateKey = () => {
  *   not hex strings! You'll have to convert the private key.
  */
 const getPublicKey = privateKey => {
-  // Your code here
+  const privKeyBuffer = Buffer.from(privateKey.toString('hex'), 'hex');
 
+  const pubKey = secp256k1.publicKeyCreate(privKeyBuffer);
+  return pubKey.toString('hex');
 };
-
 /**
  * A function which takes a hex private key and a string message, returning
  * a 128 character hexadecimal signature.
@@ -50,10 +53,12 @@ const getPublicKey = privateKey => {
  *   not the message itself!
  */
 const sign = (privateKey, message) => {
-  // Your code here
+  const msg = Buffer.from(sha256(message), 'hex');
+  const privKey = Buffer.from(privateKey, 'hex');
 
+  const sigObj = secp256k1.sign(msg, privKey);
+  return sigObj.signature.toString('hex');
 };
-
 /**
  * A function which takes a hex public key, a string message, and a hex
  * signature, and returns either true or false.
@@ -65,13 +70,19 @@ const sign = (privateKey, message) => {
  *   // false
  */
 const verify = (publicKey, message, signature) => {
-  // Your code here
-
+  // convert hex public key to buffer
+  const pubKey = Buffer.from(publicKey, 'hex');
+  // convert string message to buffer
+  const msg = Buffer.from(sha256(message), 'hex');
+  // convert hex signiture
+  const signed = Buffer.from(signature, 'hex');
+  console.log(msg, signed, pubKey);
+  secp256k1.verify(msg, signed, pubKey);
 };
 
 module.exports = {
   createPrivateKey,
   getPublicKey,
   sign,
-  verify
+  verify,
 };
