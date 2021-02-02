@@ -104,8 +104,8 @@ class Blockchain {
    * adding it to the chain.
    */
   addBlock(transactions) {
-    const prevHash = this.getHeadBlock();
-    const newBlock = new Block(transactions, prevHash.hash);
+    const prevBlock = this.getHeadBlock();
+    const newBlock = new Block(transactions, prevBlock.hash);
     this.blocks.push(newBlock);
   }
 
@@ -124,7 +124,7 @@ class Blockchain {
       block.transactions.forEach(tx => {
         if (tx.recipient === publicKey) {
           balance += tx.amount;
-        } else {
+        } else if (tx.source === publicKey) {
           balance -= tx.amount;
         }
       });
