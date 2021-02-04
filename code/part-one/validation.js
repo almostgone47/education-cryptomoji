@@ -2,7 +2,7 @@
 
 const { createHash } = require('crypto');
 const signing = require('./signing');
-
+const sha256 = require('sha256');
 /**
  * A simple validation function for transactions. Accepts a transaction
  * and returns true or false. It should reject transactions that:
@@ -11,8 +11,13 @@ const signing = require('./signing');
  *   - have been modified since signing
  */
 const isValidTransaction = transaction => {
-  // Enter your solution here
+  if (transaction.amount < 0) {
+    return false;
+  }
 
+  const data = transaction.source + transaction.recipient + transaction.amount;
+
+  return signing.verify(transaction.source, data, transaction.signature);
 };
 
 /**
@@ -22,8 +27,13 @@ const isValidTransaction = transaction => {
  *   - they contain any invalid transactions
  */
 const isValidBlock = block => {
-  // Your code here
+  const transactionString = block.transactions.map(tx => tx.signature).join('');
+  const data = transactionString + block.previousHash + block.nonce;
 
+  if (block.hash !== sha256(data)) {
+    return false;
+  }
+  return block.transactions.every(isValidTransaction);
 };
 
 /**
@@ -37,8 +47,28 @@ const isValidBlock = block => {
  *   - contains any invalid transactions
  */
 const isValidChain = blockchain => {
-  // Your code here
+  const { blocks } = blockchain;
 
+  if (blocks[0].previousHash !== null) {
+    return false;
+  }
+
+  for (let i = 0; i < blocks.length; i++) {
+    if (!isValidBlock(blocks[i])) {
+      return false;
+    }
+
+    if (i !== 0 && blocks[i].previousHash !== blocks[i - 1].hash) {
+      return false;
+    }
+
+    blocks[i].transactions.map(block => {
+      if (isValidTransaction(block)) {
+        return false;
+      }
+    });
+  }
+  return true;
 };
 
 /**
@@ -46,14 +76,23 @@ const isValidChain = blockchain => {
  * blockchain, mutating it for your own nefarious purposes. This should
  * (in theory) make the blockchain fail later validation checks;
  */
-const breakChain = blockchain => {
-  // Your code here
+const randomNum = maxNum => {
+  return Math.floor(Math.random() * maxNum);
+};
 
+const breakChain = blockchain => {
+  const maxBlocksNum = blockchain.blocks.length;
+  const maxTxNum =
+    blockchain.blocks[randomNum(maxBlocksNum)].transactions.length;
+
+  blockchain.blocks[randomNum(maxBlocksNum)].transactions[
+    randomNum(maxTxNum)
+  ] = randomNum(100);
 };
 
 module.exports = {
   isValidTransaction,
   isValidBlock,
   isValidChain,
-  breakChain
+  breakChain,
 };
