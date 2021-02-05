@@ -7,42 +7,40 @@ const {
   MineableTransaction,
   MineableBlock,
   MineableChain,
-  isValidMineableChain
+  isValidMineableChain,
 } = require('../mining');
 
-
-describe.skip('Mining module', function() {
-
-  describe('MineableTransaction', function() {
+describe('Mining module', function () {
+  describe('MineableTransaction', function () {
     let signer = null;
     let recipient = null;
     let amount = null;
     let transaction = null;
 
-    beforeEach(function() {
+    beforeEach(function () {
       signer = signing.createPrivateKey();
       recipient = signing.getPublicKey(signing.createPrivateKey());
       amount = Math.ceil(Math.random() * 100);
       transaction = new MineableTransaction(signer, recipient, amount);
     });
 
-    it('should include signer public key as source', function() {
+    it('should include signer public key as source', function () {
       expect(transaction.source).to.equal(signing.getPublicKey(signer));
     });
 
-    it('should include the passed recipient and amount', function() {
+    it('should include the passed recipient and amount', function () {
       expect(transaction.recipient).to.equal(recipient);
       expect(transaction.amount).to.equal(amount);
     });
 
-    it('should include a valid signature', function() {
+    it('should include a valid signature', function () {
       const { source, signature } = transaction;
       const signedMessage = source + recipient + amount;
 
       expect(signing.verify(source, signedMessage, signature)).to.be.true;
     });
 
-    it('should create a reward by making signer the recipient', function() {
+    it('should create a reward by making signer the recipient', function () {
       const reward = new MineableTransaction(signer, null, amount);
 
       expect(reward.source).to.equal(null);
@@ -50,34 +48,33 @@ describe.skip('Mining module', function() {
     });
   });
 
-  describe('MineableBlock', function() {
+  describe('MineableBlock', function () {
     let previousHash = null;
     let transactions = null;
     let block = null;
 
-    beforeEach(function() {
+    beforeEach(function () {
       const signer = signing.createPrivateKey();
       const recipient = signing.getPublicKey(signing.createPrivateKey());
       const amount = Math.ceil(Math.random() * 100);
 
-      transactions = [ new MineableTransaction(signer, recipient, amount) ];
+      transactions = [new MineableTransaction(signer, recipient, amount)];
       previousHash = randomBytes(64).toString('hex');
 
       block = new MineableBlock(transactions, previousHash);
     });
 
-    it('should be instantiated without a hash', function() {
+    it('should be instantiated without a hash', function () {
       expect(!!block.hash).to.be.false;
     });
-
   });
 
-  describe('MineableChain', function() {
+  describe('MineableChain', function () {
     let blockchain = null;
     let transaction = null;
     let miner = null;
 
-    beforeEach(function() {
+    beforeEach(function () {
       blockchain = new MineableChain();
 
       const signer = signing.createPrivateKey();
@@ -90,19 +87,19 @@ describe.skip('Mining module', function() {
       blockchain.mine(miner);
     });
 
-    it('should have properties for difficulty and reward', function() {
+    it('should have properties for difficulty and reward', function () {
       expect(blockchain.difficulty).to.exist.and.be.a('number');
       expect(blockchain.reward).to.exist.and.be.a('number');
     });
 
-    it('should be able to mine new blocks', function() {
+    it('should be able to mine new blocks', function () {
       expect(blockchain.blocks).to.have.lengthOf(2);
 
       const head = blockchain.getHeadBlock();
       expect(head.transactions).to.deep.include(transaction);
     });
 
-    it('should mine blocks with a valid zero-leading hash', function() {
+    it('should mine blocks with a valid zero-leading hash', function () {
       const head = blockchain.getHeadBlock();
       const zeros = '0'.repeat(blockchain.difficulty);
 
@@ -114,7 +111,7 @@ describe.skip('Mining module', function() {
       expect(copy.hash).to.equal(head.hash);
     });
 
-    it('should include a transaction rewarding the miner', function() {
+    it('should include a transaction rewarding the miner', function () {
       const { transactions } = blockchain.getHeadBlock();
       const reward = transactions.find(transaction => {
         return transaction.recipient === signing.getPublicKey(miner);
@@ -125,24 +122,28 @@ describe.skip('Mining module', function() {
       expect(reward.amount).to.equal(blockchain.reward);
     });
 
-    it('should not add transactions to the chain until mined', function() {
+    it('should not add transactions to the chain until mined', function () {
       const originalHead = blockchain.getHeadBlock();
-      blockchain.addTransaction(new MineableTransaction(
-        signing.createPrivateKey(),
-        signing.getPublicKey(signing.createPrivateKey()),
-        Math.ceil(Math.random() * 100)
-      ));
+      blockchain.addTransaction(
+        new MineableTransaction(
+          signing.createPrivateKey(),
+          signing.getPublicKey(signing.createPrivateKey()),
+          Math.ceil(Math.random() * 100)
+        )
+      );
 
       expect(originalHead).to.deep.equal(blockchain.getHeadBlock());
     });
 
-    it('should clear out pending transactions after mining', function() {
+    it('should clear out pending transactions after mining', function () {
       // Add a transaction so we can mine a new block
-      blockchain.addTransaction(new MineableTransaction(
-        signing.createPrivateKey(),
-        signing.getPublicKey(signing.createPrivateKey()),
-        Math.ceil(Math.random() * 100)
-      ));
+      blockchain.addTransaction(
+        new MineableTransaction(
+          signing.createPrivateKey(),
+          signing.getPublicKey(signing.createPrivateKey()),
+          Math.ceil(Math.random() * 100)
+        )
+      );
       blockchain.mine(miner);
 
       const head = blockchain.getHeadBlock();
@@ -150,13 +151,13 @@ describe.skip('Mining module', function() {
     });
   });
 
-  describe('isValidMineableChain', function() {
+  describe('isValidMineableChain', function () {
     let blockchain = null;
     let reward = null;
     let miner = null;
     let recipient = null;
 
-    beforeEach(function() {
+    beforeEach(function () {
       blockchain = new MineableChain();
       reward = blockchain.reward;
       miner = signing.createPrivateKey();
@@ -171,11 +172,11 @@ describe.skip('Mining module', function() {
       blockchain.mine(miner);
     });
 
-    it('should return true for a valid blockchain', function() {
+    it('should return true for a valid blockchain', function () {
       expect(isValidMineableChain(blockchain)).to.be.true;
     });
 
-    it('should return false with an unmined block', function() {
+    it('should return false with an unmined block', function () {
       const valid = new MineableTransaction(miner, recipient, reward);
       const block = new MineableBlock([valid], blockchain.getHeadBlock().hash);
       block.calculateHash(0);
@@ -184,7 +185,7 @@ describe.skip('Mining module', function() {
       expect(isValidMineableChain(blockchain)).to.be.false;
     });
 
-    it('should return false with an extra reward transaction', function() {
+    it('should return false with an extra reward transaction', function () {
       const fraud = new MineableTransaction(miner, null, reward);
       blockchain.addTransaction(fraud);
       blockchain.mine(miner);
@@ -192,7 +193,7 @@ describe.skip('Mining module', function() {
       expect(isValidMineableChain(blockchain)).to.be.false;
     });
 
-    it('should return false with a negative balance', function() {
+    it('should return false with a negative balance', function () {
       const invalid = new MineableTransaction(miner, recipient, reward * 10);
       blockchain.addTransaction(invalid);
       blockchain.mine(miner);
